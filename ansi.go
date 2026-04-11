@@ -115,7 +115,7 @@ func ansiCurlPage() string {
 	b.WriteString("\n")
 	b.WriteString(ansi256(252, "     "))
 	b.WriteString(ansiBold256(117, osc8(GmailURL, "Email")))
-	b.WriteString(ansi256(252, "     "))
+	b.WriteString(ansi256(252, "  .  "))
 	b.WriteString(ansiBold256(84, osc8(GitHubURL, "GitHub")))
 	b.WriteString(ansi256(240, "  ·  "))
 	b.WriteString(ansiBold256(33, osc8(LinkedInURL, "LinkedIn")))
