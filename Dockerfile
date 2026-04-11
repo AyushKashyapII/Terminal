@@ -11,6 +11,7 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /terminal .
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates
 COPY --from=build /terminal /terminal
-USER nobody
 EXPOSE 8080
-ENTRYPOINT ["/terminal", "-serve"]
+# Explicit command so the platform never runs the binary without -serve (TUI would exit in a container).
+ENTRYPOINT ["/terminal"]
+CMD ["-serve"]
