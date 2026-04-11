@@ -1,0 +1,7 @@
+.git
+.gitignore
+*.md
+.cursor
+terminals
+mcps
+**/.DS_Store
