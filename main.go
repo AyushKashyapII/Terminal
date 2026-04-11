@@ -14,7 +14,15 @@ func main() {
 	addr := flag.String("addr", "", "listen address when -serve (e.g. :8080); empty uses $PORT or :8080 (Fly.io sets PORT)")
 	flag.Parse()
 
-	if *serve {
+	runServe := *serve
+	if !runServe {
+		args := flag.Args()
+		if len(args) == 1 && strings.EqualFold(strings.TrimSpace(args[0]), "serve") {
+			runServe = true
+		}
+	}
+
+	if runServe {
 		listenAddr := *addr
 		if listenAddr == "" {
 			if p := os.Getenv("PORT"); p != "" {
@@ -29,6 +37,13 @@ func main() {
 		}
 		runServer(listenAddr)
 		return
+	}
+
+	if len(flag.Args()) > 0 {
+		fmt.Fprintln(os.Stderr, "unknown arguments:", strings.Join(flag.Args(), " "))
+		fmt.Fprintln(os.Stderr, "usage: go run .           # interactive TUI")
+		fmt.Fprintln(os.Stderr, "        go run . -serve   # HTTP résumé for curl (or: go run . serve)")
+		os.Exit(2)
 	}
 
 	if err := runTUI(); err != nil {
