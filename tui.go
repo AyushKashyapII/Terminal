@@ -3,11 +3,34 @@ package main
 import (
 	"strings"
 
+	"github.com/charmbracelet/ssh"
+	"github.com/charmbracelet/wish"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
+
 type pane int
+
+func sshHandler(sess ssh.Session) (tea.Model, []tea.ProgramOption) {
+	_, _, active := sess.Pty()
+	if !active {
+		wish.Fatalln(sess, "no terminal detected")
+		return nil, nil
+	}
+	m := &model{
+		cursor:  0,
+		cCursor: 0,
+	}
+	// The wish bubbletea middleware handles window size messages for us
+	// but we can also get the initial size from the PTY.
+	if pty, _, ok := sess.Pty(); ok {
+		m.width = pty.Window.Width
+		m.height = pty.Window.Height
+	}
+	return m, []tea.ProgramOption{tea.WithAltScreen()}
+}
+
 
 const (
 	paneHome pane = iota
