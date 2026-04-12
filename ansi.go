@@ -37,25 +37,54 @@ func ansiHRColor(width int, label string, labelFG int) string {
 		ansi256(109, strings.Repeat("─", right))
 }
 
-// ansiResumeHero — large name art with a short tagline.
+// ansiResumeHero — large name art with the Batman logo and tagline.
 func ansiResumeHero() string {
-	lines := append(splitLines(asciiNameAyush), splitLines(asciiNameKashyap)...)
-	// Cool → warm as you read down
-	palette := []int{45, 39, 38, 37, 43, 214, 220}
+	nameLines := append(splitLines(asciiNameAyush), splitLines(asciiNameKashyap)...)
+	batmanLines := splitLines(BatmanLogo)
+
+	palette := []int{45, 39, 38, 37, 43, 214, 220, 214, 208, 202, 196, 160}
 	var b strings.Builder
-	for i, line := range lines {
-		c := palette[i%len(palette)]
-		b.WriteString(ansiBold256(c, line))
+
+	maxLines := len(nameLines)
+	if len(batmanLines) > maxLines {
+		maxLines = len(batmanLines)
+	}
+
+	for i := 0; i < maxLines; i++ {
+		// Name part
+		if i < len(nameLines) {
+			c := palette[i%len(palette)]
+			name := nameLines[i]
+			b.WriteString(ansiBold256(c, name))
+			// Pad name to ~65 chars before adding logo
+			padding := 65 - len([]rune(name))
+
+
+			if padding > 0 {
+				b.WriteString(strings.Repeat(" ", padding))
+			}
+		} else {
+			// Pad empty name space
+			b.WriteString(strings.Repeat(" ", 55))
+		}
+
+		// Batman Logo part
+		if i < len(batmanLines) {
+			b.WriteString(ansiBold256(226, batmanLines[i])) // Bright Yellow for Batman
+		}
 		b.WriteString("\n")
 	}
+
+
 	b.WriteString("\n")
 	b.WriteString(ansi256(246, "  "))
 	b.WriteString(ansiBold256(86, "Software engineer"))
 	b.WriteString(ansi256(246, "  ·  "))
-	b.WriteString(ansi256(252, Location))
+	b.WriteString(ansiBold256(86, "Systems designer"))
 	b.WriteString("\n")
 	return b.String()
 }
+
 
 func writePrefixedLines(b *strings.Builder, prefix string, fg int, text string) {
 	for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
@@ -126,22 +155,22 @@ func ansiCurlPage() string {
 	b.WriteString(ansi256(240, "Tip: clickable links need a terminal that supports OSC 8 hyperlinks."))
 	b.WriteString("\n\n")
 
-	b.WriteString(ansi256(240, strings.Repeat("·", 56)))
-	b.WriteString("\n")
-	b.WriteString(ansi256(245, "     "))
-	b.WriteString(ansi256(240, "Interactive TUI (arrow keys): "))
-	b.WriteString(ansiBold256(86, "go run ."))
-	b.WriteString(ansi256(245, "  ·  "))
-	b.WriteString(ansi256(240, "Same ANSI page: "))
-	b.WriteString(ansiBold256(213, "curl -sL https://"+SiteDomain+"/"))
-	b.WriteString(ansi256(245, " or "))
-	b.WriteString(ansiBold256(213, "curl -sL https://"+SiteDomain+"/terminal"))
-	b.WriteString("\n")
-	b.WriteString(ansi256(245, "     "))
-	b.WriteString(ansi256(240, "SSH shell coming soon: "))
-	b.WriteString(ansiBold256(86, "ssh terminal.AyushKashyap.me"))
-	b.WriteString(ansi256(240, " (placeholder — wire when ready)."))
-	b.WriteString("\n")
+	// b.WriteString(ansi256(240, strings.Repeat("·", 56)))
+	// b.WriteString("\n")
+	// b.WriteString(ansi256(245, "     "))
+	// b.WriteString(ansi256(240, "Interactive TUI (arrow keys): "))
+	// b.WriteString(ansiBold256(86, "go run ."))
+	// b.WriteString(ansi256(245, "  ·  "))
+	// b.WriteString(ansi256(240, "Same ANSI page: "))
+	// b.WriteString(ansiBold256(213, "curl -sL https://"+SiteDomain+"/"))
+	// b.WriteString(ansi256(245, " or "))
+	// b.WriteString(ansiBold256(213, "curl -sL https://"+SiteDomain+"/terminal"))
+	// b.WriteString("\n")
+	// b.WriteString(ansi256(245, "     "))
+	// b.WriteString(ansi256(240, "SSH shell coming soon: "))
+	// b.WriteString(ansiBold256(86, "ssh terminal.AyushKashyap.me"))
+	// b.WriteString(ansi256(240, " (placeholder — wire when ready)."))
+	// b.WriteString("\n")
 
 	return b.String()
 }
