@@ -31,11 +31,8 @@ func runSSHServer(addr string) {
 
 	hostKeyPath := ".ssh/term_ed25519"
 	if _, err := os.Stat(hostKeyPath); os.IsNotExist(err) {
-		// Ensure directory exists
 		_ = os.MkdirAll(".ssh", 0700)
 		log.Info("Generating new SSH host key", "path", hostKeyPath)
-		// We can just let wish generate one if we don't provide a path, 
-		// but providing a path and having it fail if we can't write is safer for persistence.
 	}
 
 	s, err := wish.NewServer(

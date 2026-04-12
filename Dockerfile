@@ -12,6 +12,8 @@ FROM alpine:3.21
 RUN apk add --no-cache ca-certificates
 COPY --from=build /terminal /terminal
 EXPOSE 8080
+EXPOSE 2222
+
 # Explicit command so the platform never runs the binary without -serve (TUI would exit in a container).
 ENTRYPOINT ["/terminal"]
 CMD ["-serve"]
