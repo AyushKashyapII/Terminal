@@ -41,6 +41,7 @@ const (
 var homeMenu = []string{
 	"About",
 	"Contacts",
+	"Tetris",
 	"Quit",
 }
 
@@ -179,6 +180,8 @@ func (m *model) View() string {
 		return m.viewAbout(title, sub)
 	case paneContact:
 		return m.viewContact(title, sub)
+	case paneAbout:
+		return m.viewTetris(title,sub)
 	default:
 		return m.viewHome(title, sub)
 	}
@@ -196,6 +199,10 @@ func (m *model) heroBlock() string {
 		return lipgloss.JoinHorizontal(lipgloss.Top, left, gap, worldCat)
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, left, "", worldCat)
+}
+
+func (m *model) viewTetris(title,sub string) string {
+	
 }
 
 func (m *model) viewHome(title, sub string) string {
