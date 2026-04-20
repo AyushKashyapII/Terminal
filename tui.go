@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/ssh"
@@ -35,6 +36,7 @@ func sshHandler(sess ssh.Session) (tea.Model, []tea.ProgramOption) {
 const (
 	paneHome pane = iota
 	paneAbout
+	paneTetris
 	paneContact
 )
 
@@ -71,6 +73,7 @@ type model struct {
 	width   int
 	height  int
 	status  string
+	tetris  *TetrisGame
 }
 
 func runTUI() error {
@@ -88,7 +91,20 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		if m.pane == paneTetris && m.tetris != nil {
+			m.tetris.Resize(msg.Width, msg.Height)
+		}
 		return m, nil
+
+	case tetrisTickMsg:
+		if m.pane != paneTetris || m.tetris == nil {
+			return m, nil
+		}
+		if m.tetris.GameOver() {
+			return m, nil
+		}
+		m.tetris.TickGravity()
+		return m, tetrisTickCmd()
 
 	case tea.KeyMsg:
 		switch m.pane {
@@ -100,6 +116,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.status = ""
 				return m, nil
 			}
+		case paneTetris:
+			return m.updateTetris(msg)
 		case paneContact:
 			return m.updateContact(msg)
 		}
@@ -128,7 +146,45 @@ func (m *model) updateHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cCursor = 0
 			m.status = ""
 		case 2:
+			m.pane = paneTetris
+			m.status = ""
+			m.tetris = NewTetrisGame(m.width, m.height)
+			return m, tetrisTickCmd()
+		case 3:
 			return m, tea.Quit
+		}
+	}
+	return m, nil
+}
+
+func (m *model) updateTetris(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "b", "esc":
+		m.pane = paneHome
+		m.status = ""
+		return m, nil
+	case "ctrl+c", "q":
+		return m, tea.Quit
+	case "left":
+		if m.tetris != nil {
+			m.tetris.MoveLeft()
+		}
+	case "right":
+		if m.tetris != nil {
+			m.tetris.MoveRight()
+		}
+	case "a", "s":
+		if m.tetris != nil {
+			m.tetris.RotateCW()
+		}
+	case "down", "j":
+		if m.tetris != nil {
+			m.tetris.SoftDrop()
+		}
+	case "r", "enter":
+		if m.tetris != nil && m.tetris.GameOver() {
+			m.tetris.Retry(m.width, m.height)
+			return m, tetrisTickCmd()
 		}
 	}
 	return m, nil
@@ -180,7 +236,7 @@ func (m *model) View() string {
 		return m.viewAbout(title, sub)
 	case paneContact:
 		return m.viewContact(title, sub)
-	case paneAbout:
+	case paneTetris:
 		return m.viewTetris(title,sub)
 	default:
 		return m.viewHome(title, sub)
@@ -201,8 +257,101 @@ func (m *model) heroBlock() string {
 	return lipgloss.JoinVertical(lipgloss.Left, left, "", worldCat)
 }
 
-func (m *model) viewTetris(title,sub string) string {
-	
+func (m *model) viewTetris(title, sub string) string {
+	if m.tetris == nil {
+		return lipgloss.JoinVertical(lipgloss.Left, title, sub, "",
+			lipgloss.NewStyle().Foreground(colSubtext).Render("Choose Tetris from the main menu."),
+			"",
+			lipgloss.NewStyle().Foreground(colSubtext).Render("b or esc — back"),
+		)
+	}
+	g := m.tetris
+
+	emptyCell := lipgloss.NewStyle().Foreground(colSubtext).Render("· ")
+	emptyPreviewCell := lipgloss.NewStyle().Foreground(colSubtext).Render("  ")
+
+	cell := func(k PieceKind) string {
+		switch k {
+		case PieceNone:
+			return emptyCell
+		case PieceI:
+			return lipgloss.NewStyle().Background(colSky).Render("  ")
+		case PieceO:
+			return lipgloss.NewStyle().Background(colPeach).Render("  ")
+		case PieceT:
+			return lipgloss.NewStyle().Background(colMauve).Render("  ")
+		case PieceS:
+			return lipgloss.NewStyle().Background(colGreen).Render("  ")
+		case PieceZ:
+			return lipgloss.NewStyle().Background(colRose).Render("  ")
+		case PieceJ:
+			return lipgloss.NewStyle().Background(colBlue).Render("  ")
+		case PieceL:
+			return lipgloss.NewStyle().Background(colText).Render("  ")
+		default:
+			return emptyCell
+		}
+	}
+	innerLines := g.RenderLines(cell)
+	playInner := strings.Join(innerLines, "\n")
+
+	playBox := lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(colGreen).
+		Padding(0, 1).
+		Render(playInner)
+
+	dimTxt := lipgloss.NewStyle().Foreground(colSubtext).Render(
+		"Well " + strconv.Itoa(g.Cols) + "×" + strconv.Itoa(g.Rows),
+	)
+	scoreLine := lipgloss.NewStyle().Foreground(colText).Render(
+		"Score " + strconv.Itoa(g.Score),
+	)
+	linesLine := lipgloss.NewStyle().Foreground(colText).Render(
+		"Lines " + strconv.Itoa(g.Lines),
+	)
+
+	miniCell := func(k PieceKind) string {
+		if k == PieceNone {
+			return emptyPreviewCell
+		}
+		return cell(k)
+	}
+	nextBlock := strings.Join(g.NextPreviewLines(miniCell), "\n")
+
+	sideBody := lipgloss.JoinVertical(lipgloss.Left,
+		lipgloss.NewStyle().Bold(true).Foreground(colSky).Render("Next"),
+		nextBlock,
+		"",
+		scoreLine,
+		linesLine,
+		"",
+		dimTxt,
+	)
+	if g.GameOver() {
+		sideBody = lipgloss.JoinVertical(lipgloss.Left, sideBody, "",
+			lipgloss.NewStyle().Bold(true).Foreground(colRose).Render("Game over"),
+			lipgloss.NewStyle().Foreground(colSubtext).Render("r or Enter — retry"),
+		)
+	}
+
+	side := lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(colBlue).
+		Padding(0, 1).
+		Width(22).
+		Render(sideBody)
+
+	head := lipgloss.JoinVertical(lipgloss.Left, title, sub, "",
+		lipgloss.NewStyle().Bold(true).Foreground(colPeach).Render("Tetris"),
+		"")
+
+	rowLayout := lipgloss.JoinHorizontal(lipgloss.Top, playBox, "  ", side)
+
+	help := lipgloss.NewStyle().Foreground(colSubtext).Render(
+		"←/→ move · a/s rotate · ↓/j soft drop · b/esc menu · q quit · r retry (when over)",
+	)
+	return lipgloss.JoinVertical(lipgloss.Left, head, rowLayout, "", help)
 }
 
 func (m *model) viewHome(title, sub string) string {

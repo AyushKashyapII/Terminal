@@ -21,6 +21,16 @@ go run .
 
 Interactive TUI — navigate with **↑ / ↓** or **j / k**, **Enter** to select, **q** to quit.
 
+## Tetris mode
+
+The TUI now includes a playable **Tetris** mode from the main menu.
+
+- Open **Tetris** from the home menu.
+- Controls: **← / →** move, **a / s** rotate, **↓** soft drop.
+- Use **r** to retry after game over.
+
+![Terminal Tetris mode](tetris.png)
+
 ## HTTP mode (curl)
 
 ```bash
